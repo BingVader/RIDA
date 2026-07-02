@@ -1,0 +1,49 @@
+{
+  "name": "rida",
+  "private": true,
+  "version": "1.0.0",
+  "description": "RIDA - A local-first EPUB Reader desktop app.",
+  "author": "Asus",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "package": "vite build && electron-builder",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "dist": "vite build && electron-builder"
+  },
+  "dependencies": {
+    "epubjs": "^0.3.93",
+    "localforage": "^1.10.0",
+    "lucide-react": "^1.22.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "electron-builder": "^26.15.3",
+    "oxlint": "^1.69.0",
+    "vite": "^8.1.0"
+  },
+  "build": {
+    "appId": "com.rida.epubreader",
+    "productName": "RIDA",
+    "icon": "public/icon.png",
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/icon.ico"
+    },
+    "directories": {
+      "output": "dist-electron"
+    }
+  }
+}

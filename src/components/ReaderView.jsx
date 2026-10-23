@@ -15,7 +15,7 @@ import {
   Edit3,
   Check
 } from 'lucide-react';
-import { getBookBinary, getBookMetadata, updateReadingProgress, updateAnnotations } from '../db';
+import { getBookBinary, getBookMetadata, updateReadingProgress, updateAnnotations, markBookAsStarted } from '../db';
 import SettingsPanel from './SettingsPanel';
 import ePub from 'epubjs';
 
@@ -76,6 +76,7 @@ export default function ReaderView({ bookId, onBackToLibrary }) {
 
     const initBook = async () => {
       try {
+        await markBookAsStarted(bookId);
         const [meta, binary] = await Promise.all([
           getBookMetadata(bookId),
           getBookBinary(bookId)

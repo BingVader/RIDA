@@ -10,7 +10,9 @@ import {
   CheckCircle,
   FileWarning,
   FolderOpen,
-  RefreshCw
+  RefreshCw,
+  Globe,
+  Compass
 } from 'lucide-react';
 import { 
   saveBook, 
@@ -34,7 +36,7 @@ const blobToBase64 = (blob) => {
   });
 };
 
-export default function LibraryView({ onOpenBook }) {
+export default function LibraryView({ onOpenBook, onNavigateToBrowse }) {
   const [books, setBooks] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -323,9 +325,12 @@ export default function LibraryView({ onOpenBook }) {
 
     if (!matchesSearch) return false;
 
-    if (filterStatus === 'unread') return book.progress === 0;
-    if (filterStatus === 'reading') return book.progress > 0 && book.progress < 99;
-    if (filterStatus === 'finished') return book.progress >= 99;
+    const isStarted = !!book.startedReading || (book.progress > 0);
+    const isFinished = book.progress >= 99;
+
+    if (filterStatus === 'unread') return !isStarted;
+    if (filterStatus === 'reading' || filterStatus === 'read') return isStarted && !isFinished;
+    if (filterStatus === 'finished') return isFinished;
     return true;
   });
 
@@ -351,6 +356,15 @@ export default function LibraryView({ onOpenBook }) {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+
+          <button
+            className="btn-secondary btn-browse-action"
+            onClick={onNavigateToBrowse}
+            title="Discover books from Project Gutenberg and Open Library"
+          >
+            <Compass size={18} />
+            Browse Books
+          </button>
 
           {'showDirectoryPicker' in window && (
             <div className="folder-actions-wrapper">
@@ -431,21 +445,24 @@ export default function LibraryView({ onOpenBook }) {
         { }
         {books.length > 0 && (
           <div className="filter-tabs">
-            {['all', 'unread', 'reading', 'finished'].map((status) => (
-              <button
-                key={status}
-                className={`filter-tab ${filterStatus === status ? 'active' : ''}`}
-                onClick={() => setFilterStatus(status)}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-                <span className="count-badge">
-                  {status === 'all' && books.length}
-                  {status === 'unread' && books.filter(b => b.progress === 0).length}
-                  {status === 'reading' && books.filter(b => b.progress > 0 && b.progress < 99).length}
-                  {status === 'finished' && books.filter(b => b.progress >= 99).length}
-                </span>
-              </button>
-            ))}
+            {['all', 'unread', 'reading', 'finished'].map((status) => {
+              const label = status === 'reading' ? 'Reading' : status.charAt(0).toUpperCase() + status.slice(1);
+              return (
+                <button
+                  key={status}
+                  className={`filter-tab ${filterStatus === status ? 'active' : ''}`}
+                  onClick={() => setFilterStatus(status)}
+                >
+                  {label}
+                  <span className="count-badge">
+                    {status === 'all' && books.length}
+                    {status === 'unread' && books.filter(b => !b.startedReading && (!b.progress || b.progress === 0)).length}
+                    {status === 'reading' && books.filter(b => (b.startedReading || (b.progress > 0 && b.progress < 99)) && b.progress < 99).length}
+                    {status === 'finished' && books.filter(b => b.progress >= 99).length}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -464,6 +481,8 @@ export default function LibraryView({ onOpenBook }) {
               const radius = 22;
               const circumference = 2 * Math.PI * radius;
               const strokeDashoffset = circumference - (book.progress / 100) * circumference;
+              const isStarted = !!book.startedReading || (book.progress > 0);
+              const isFinished = book.progress >= 99;
 
               return (
                 <div
@@ -495,7 +514,7 @@ export default function LibraryView({ onOpenBook }) {
                     </button>
 
                     { }
-                    {book.progress >= 99 && (
+                    {isFinished && (
                       <div className="finished-badge" title="Finished reading">
                         <CheckCircle size={16} />
                       </div>
@@ -539,8 +558,10 @@ export default function LibraryView({ onOpenBook }) {
                       <div className="read-meta">
                         <Clock size={12} className="meta-icon" />
                         <span>
-                          {book.progress > 0
-                            ? `Read ${new Date(book.lastRead).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+                          {isFinished
+                            ? 'Finished'
+                            : isStarted
+                            ? `Read ${new Date(book.lastRead || Date.now()).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
                             : 'Unread'
                           }
                         </span>
@@ -561,12 +582,23 @@ export default function LibraryView({ onOpenBook }) {
               onDrop={handleDrop}
             >
               <UploadCloud className="empty-upload-icon" />
-              <h2>Your library is empty</h2>
-              <p>Drag and drop EPUB files here or browse to load files from your local storage.</p>
+              <h2>{filterStatus !== 'all' ? `No ${filterStatus} books found` : 'Your library is empty'}</h2>
+              <p>
+                {filterStatus !== 'all' 
+                  ? `There are no books in the "${filterStatus}" category.`
+                  : 'Drag and drop EPUB files here, connect a local folder, or browse free books online.'}
+              </p>
 
               <div className="empty-actions">
                 <button
                   className="btn-primary"
+                  onClick={onNavigateToBrowse}
+                >
+                  <Compass size={16} />
+                  Browse Online Books
+                </button>
+                <button
+                  className="btn-secondary"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   Choose EPUB File

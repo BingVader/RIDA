@@ -102,6 +102,7 @@ export async function scanLocalDirectory(dirHandle, onProgress) {
           author,
           cover: coverBase64,
           progress: 0,
+          startedReading: false,
           lastRead: Date.now(),
           addedAt: Date.now(),
           location: null,
@@ -133,12 +134,15 @@ export async function saveBook(id, meta, arrayBuffer) {
     author: meta.author || 'Unknown Author',
     cover: meta.cover || null,
     progress: 0,
+    startedReading: false,
     lastRead: Date.now(),
     addedAt: Date.now(),
     location: null,
     bookmarks: [],
     highlights: [],
-    storageType: 'db'
+    storageType: 'db',
+    source: meta.source || 'upload',
+    sourceUrl: meta.sourceUrl || null
   };
 
   await metadataStore.setItem(id, metadata);
@@ -158,6 +162,15 @@ export async function getBooksList() {
 
 export async function getBookMetadata(id) {
   return await metadataStore.getItem(id);
+}
+
+export async function markBookAsStarted(id) {
+  const meta = await metadataStore.getItem(id);
+  if (meta) {
+    meta.startedReading = true;
+    meta.lastRead = Date.now();
+    await metadataStore.setItem(id, meta);
+  }
 }
 
 export async function getBookBinary(id) {
@@ -184,6 +197,7 @@ export async function updateReadingProgress(id, progress, locationCfi) {
     meta.progress = progress;
     meta.location = locationCfi;
     meta.lastRead = Date.now();
+    meta.startedReading = true;
     await metadataStore.setItem(id, meta);
   }
 }
